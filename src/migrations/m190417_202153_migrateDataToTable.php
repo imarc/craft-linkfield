@@ -178,18 +178,27 @@ class m190417_202153_migrateDataToTable extends Migration
                 }
             }
 
-            $insertRows[] = [
-              $row['elementId'],                          // elementId
-              $row['siteId'],                             // siteId
-              $field->id,                                 // fieldId
-              is_numeric($value) ? $value : null,         // linkedId
-              is_numeric($value) ? $row['siteId'] : null, // linkedSiteId
-              $type,                                      // type
-              is_numeric($value) ? null : $value,         // linkedUrl
-              Json::encode($payload)                      // payload
-            ];
+            $alreadyExists = (new Query())
+              ->select('id')
+              ->where(['elementId' => $row['elementId'], 'siteId' => $row['siteId'], 'fieldId' => $field->id])
+              ->from(LinkRecord::tableName())
+              ->exists();
 
-            if (count($insertRows) > 100) {
+            if (!$alreadyExists) {
+              $insertRows[] = [
+                $row['elementId'],                          // elementId
+                $row['siteId'],                             // siteId
+                $field->id,                                 // fieldId
+                is_numeric($value) ? $value : null,         // linkedId
+                is_numeric($value) ? $row['siteId'] : null, // linkedSiteId
+                $type,                                      // type
+                is_numeric($value) ? null : $value,         // linkedUrl
+                Json::encode($payload)                      // payload
+              ];
+            }
+
+
+            if (count($insertRows) > 1) {
                 $writeRows($insertRows);
                 $insertRows = [];
             }
